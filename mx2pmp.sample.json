@@ -1,0 +1,47 @@
+{
+  "workdir": "./mx2pmp-work",
+  "source": {
+    "kube_context": "mendix-k8s-prod",
+    "teamserver_base_url": "https://git.api.mendix.com"
+  },
+  "pmp": {
+    "base_url": "https://pmp.example.com",
+    "verify_tls": true,
+    "paths": {
+      "environments": "/deployservice/v1/apps/{appId}/environments",
+      "configurations": "/deployservice/v1/apps/{appId}/environments/{envId}/configurations",
+      "env_request": "/deployservice/v1/apps/{appId}/environments/{envId}/request",
+      "dashboard": "/deployservice/v1/apps/{appId}/dashboard",
+      "packages": "/buildservice/v1/apps/{appId}/packages"
+    }
+  },
+  "git": { "target_base_url": "https://gitlab.example.com/mendix-apps" },
+  "defaults": {
+    "cluster_name": "pmp-eks-prod",
+    "namespace": "mendix-apps",
+    "storage_plan": "s3-standard",
+    "database_plan": "rds-postgres",
+    "plan_map": { "postgres-shared": "rds-postgres", "minio-files": "s3-standard" },
+    "core_resource_size": "Medium",
+    "constants_mode": "env",
+    "file_key_layout": "flat",
+    "target_file_prefix": ""
+  },
+  "apps": [
+    {
+      "name": "orders",
+      "mx_project_id": "7f3c0c1e-0000-0000-0000-000000000000",
+      "pmp_app_id": "",
+      "target_repo": "https://gitlab.example.com/mendix-apps/orders.git",
+      "environments": {
+        "Test":       { "source_namespace": "mx-apps", "source_cr": "orders-test", "purpose": "Test",
+                        "pmp_env_id": "", "display_name": "orders-test", "app_url": "https://orders-test.example.com",
+                        "replicas": 1, "source_bucket": "mx-files-orders-test", "target_bucket": "pmp-files-orders-test" },
+        "Production": { "source_namespace": "mx-apps", "source_cr": "orders-prod", "purpose": "Production",
+                        "pmp_env_id": "", "display_name": "orders-prod", "app_url": "https://orders.example.com",
+                        "replicas": 2, "source_bucket": "mx-files-orders-prod", "target_bucket": "pmp-files-orders-prod",
+                        "licenseId": "<license-id>", "licenseKey": "<license-key>" }
+      }
+    }
+  ]
+}

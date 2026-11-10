@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>mx2pmp — Migrating Mendix on Kubernetes (Connected) apps to Private Mendix Platform</title>
+<style>
+  :root { --bg:#0d1117; --surface:#161b22; --surface2:#21262d; --border:#30363d; --text:#e6edf3; --muted:#8b949e;
+    --blue:#58a6ff; --blue-dim:#1f4068; --green:#3fb950; --green-dim:#1a3a24; --yellow:#d29922; --yellow-dim:#3d2e00;
+    --red:#f85149; --red-dim:#3d1a18; --purple:#a371f7; --orange:#f0883e; --code-bg:#0d1117; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; font-size:14px; line-height:1.6; }
+  .header { background:var(--surface); border-bottom:1px solid var(--border); padding:24px 40px; display:flex; align-items:center; gap:16px; }
+  .header-icon { font-size:32px; }
+  .header h1 { font-size:22px; font-weight:600; }
+  .header .subtitle { font-size:13px; color:var(--muted); margin-top:2px; }
+  .badge { display:inline-block; padding:2px 8px; border-radius:12px; font-size:11px; font-weight:600; letter-spacing:.5px; text-transform:uppercase; }
+  .badge-blue { background:var(--blue-dim); color:var(--blue); border:1px solid var(--blue); }
+  .badge-green { background:var(--green-dim); color:var(--green); border:1px solid var(--green); }
+  .badge-yellow { background:var(--yellow-dim); color:var(--yellow); border:1px solid var(--yellow); }
+  .badge-red { background:var(--red-dim); color:var(--red); border:1px solid var(--red); }
+  .container { max-width:1150px; margin:0 auto; padding:32px 40px; }
+  .toc { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:20px 24px; margin-bottom:32px; }
+  .toc h3 { font-size:13px; text-transform:uppercase; letter-spacing:1px; color:var(--muted); margin-bottom:10px; }
+  .toc ol { padding-left:20px; } .toc li { margin:3px 0; } .toc a { color:var(--blue); text-decoration:none; } .toc a:hover { text-decoration:underline; }
+  h2 { font-size:19px; font-weight:600; margin:40px 0 14px; padding-bottom:8px; border-bottom:1px solid var(--border); }
+  h3 { font-size:15px; font-weight:600; margin:24px 0 10px; color:var(--blue); }
+  h4 { font-size:13px; font-weight:600; margin:16px 0 6px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; }
+  p { margin:8px 0 12px; } ul, ol { margin:6px 0 14px 22px; } li { margin:4px 0; }
+  code { font-family:'SF Mono',Menlo,Consolas,monospace; font-size:12.5px; background:var(--surface2); padding:1px 5px; border-radius:4px; color:#ffa657; }
+  pre { background:var(--code-bg); border:1px solid var(--border); border-radius:8px; padding:14px 16px; overflow-x:auto; margin:10px 0 16px; font-family:'SF Mono',Menlo,Consolas,monospace; font-size:12.5px; line-height:1.5; }
+  pre code { background:none; padding:0; color:var(--text); }
+  .c { color:var(--muted); } .s { color:#a5d6ff; } .v { color:#79c0ff; }
+  table { width:100%; border-collapse:collapse; margin:10px 0 18px; font-size:13px; }
+  th, td { text-align:left; padding:8px 10px; border:1px solid var(--border); vertical-align:top; }
+  th { background:var(--surface2); font-weight:600; color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.5px; }
+  tr:nth-child(even) td { background:var(--surface); }
+  .callout { border-left:4px solid var(--blue); background:var(--surface); padding:12px 16px; border-radius:0 8px 8px 0; margin:14px 0; }
+  .callout.warn { border-color:var(--yellow); } .callout.danger { border-color:var(--red); } .callout.ok { border-color:var(--green); }
+  .callout b { display:block; margin-bottom:4px; }
+  .flow { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:14px 0 20px; }
+  .box { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:10px 14px; min-width:140px; text-align:center; }
+  .box .t { font-weight:600; font-size:13px; } .box .d { font-size:11.5px; color:var(--muted); margin-top:2px; }
+  .arrow { color:var(--muted); font-size:18px; }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:12px 0 20px; }
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:14px 16px; }
+  .card h4 { margin-top:0; }
+  .container a { color:var(--blue); } .container a:hover { text-decoration:underline; }
+  .footer { border-top:1px solid var(--border); margin-top:48px; padding-top:16px; font-size:12px; color:var(--muted); }
+  .check { list-style:none; margin-left:0; } .check li::before { content:"☐ "; color:var(--green); }
+  .gantt { display:grid; grid-template-columns:230px repeat(10,1fr); gap:3px; font-size:11.5px; margin:12px 0 20px; }
+  .gantt .lbl { padding:5px 8px; background:var(--surface); border:1px solid var(--border); border-radius:4px; }
+  .gantt .wk { text-align:center; color:var(--muted); padding:3px 0; }
+  .gantt .bar { border-radius:4px; height:24px; }
+  .g0{background:#6e7681} .g1{background:var(--blue-dim);border:1px solid var(--blue)} .g2{background:var(--purple);opacity:.65} .g3{background:var(--green-dim);border:1px solid var(--green)} .g4{background:var(--yellow-dim);border:1px solid var(--yellow)} .g5{background:var(--orange);opacity:.7} .g6{background:var(--red-dim);border:1px solid var(--red)}
+  .ms { color:var(--yellow); font-weight:600; }
+  @media print { body { background:#fff; color:#111; } .header, .toc, .box, .card, .callout, pre { background:#f6f8fa; } }
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="header-icon">🚚</div>
+  <div>
+    <h1>mx2pmp — Migration Tool Guide</h1>
+    <div class="subtitle">Mendix on Kubernetes (connected architecture) &rarr; Private Mendix Platform &nbsp;·&nbsp; <span class="badge badge-blue">PMP 2.8 REST</span> &nbsp;<span class="badge badge-green">Python 3.9+, no dependencies</span> &nbsp;<span class="badge badge-yellow">v0.2.0</span></div>
+  </div>
+</div>
+
+<div class="container">
+
+<div class="toc">
+  <h3>Contents</h3>
+  <ol>
+    <li><a href="#overview">Overview</a></li>
+    <li><a href="#what">What migrates, and how</a></li>
+    <li><a href="#prereq">Prerequisites and credentials</a></li>
+    <li><a href="#workflow">Workflow per application</a></li>
+    <li><a href="#commands">Command reference</a></li>
+    <li><a href="#config">Configuration notes</a></li>
+    <li><a href="#caveats">Caveats to verify in your environment</a></li>
+  </ol>
+</div>
+
+<h2 id="overview">1. Overview</h2>
+<p><code>mx2pmp.py</code> migrates Mendix applications from <b>Mendix on Kubernetes, connected architecture</b> (Mendix Operator in your cluster, environments managed from the Mendix Portal) to <b>Private Mendix Platform (PMP) 2.8</b>. It is a single Python 3.9+ file with no third-party packages. External tools used: <code>kubectl</code>, <code>git</code>, <code>pg_dump</code>/<code>pg_restore</code>, <code>aws</code> CLI.</p>
+<p>The tool reads the source cluster directly (MendixApp custom resources, StorageInstances, Secrets), so it does not depend on the Portal or the Private Cloud API. It drives PMP through its REST API (<code>deployservice/v1</code>, <code>buildservice/v1</code>) using HTTP Basic auth with a PMP user and Personal Access Token.</p>
+
+<div class="flow">
+  <div class="box"><div class="t">inventory</div><div class="d">discover MendixApp CRs</div></div><span class="arrow">&rarr;</span>
+  <div class="box"><div class="t">export / plan</div><div class="d">CR &rarr; PMP payloads</div></div><span class="arrow">&rarr;</span>
+  <div class="box"><div class="t">mirror-repo</div><div class="d">Team Server &rarr; your Git</div></div><span class="arrow">&rarr;</span>
+  <div class="box"><div class="t">pmp create-env / apply-config</div><div class="d">environment + settings</div></div><span class="arrow">&rarr;</span>
+  <div class="box"><div class="t">pmp build / deploy</div><div class="d">package, deploy stopped</div></div><span class="arrow">&rarr;</span>
+  <div class="box"><div class="t">migrate-db / migrate-files</div><div class="d">data cut-over</div></div><span class="arrow">&rarr;</span>
+  <div class="box"><div class="t">Start / validate / report</div><div class="d">go-live evidence</div></div>
+</div>
+
+<h2 id="what">2. What migrates, and how</h2>
+<table>
+<tr><th>Item</th><th>Source</th><th>Mechanism</th><th>Target</th></tr>
+<tr><td>Model / source code</td><td>Team Server Git (<code>git.api.mendix.com/&lt;projectId&gt;.git</code>)</td><td><code>mirror-repo</code> (<code>git clone --mirror</code> + <code>push --mirror</code>)</td><td>Your Git provider registered in PMP</td></tr>
+<tr><td>Runtime settings, constants, scheduled events, env vars, replicas, app URL, JVM options</td><td><code>MendixApp</code> CR <code>spec.runtime.*</code> + rendered Deployment env</td><td><code>export</code> &rarr; <code>plan</code> &rarr; <code>pmp apply-config</code></td><td>PMP environment configuration</td></tr>
+<tr><td>Environment (cluster, namespace, plans, purpose, license)</td><td>CR + <code>defaults</code>/<code>plan_map</code> in config</td><td><code>plan</code> &rarr; <code>pmp create-env</code></td><td>New PMP environment</td></tr>
+<tr><td>Deployment package</td><td>Rebuilt by PMP from Git (source image is <b>not</b> reused)</td><td><code>pmp build</code> &rarr; <code>pmp deploy</code></td><td>PMP package</td></tr>
+<tr><td>Database</td><td>PostgreSQL referenced by the environment's StorageInstance secret</td><td><code>migrate-db</code> (<code>pg_dump -Fc</code> &rarr; <code>pg_restore --clean</code>)</td><td>PMP environment database</td></tr>
+<tr><td>Files</td><td>S3-compatible bucket from the storage secret</td><td><code>migrate-files</code> (<code>aws s3 sync</code> or re-keyed copy)</td><td>PMP environment bucket</td></tr>
+<tr><td>DNS / TLS</td><td>Ingress of source cluster</td><td>Manual at cut-over</td><td>PMP ingress</td></tr>
+</table>
+<div class="callout warn"><b>Not migrated automatically</b>Non-PostgreSQL databases, Azure Blob storage (use <code>azcopy</code>), and Portal-side settings such as team members, alerts, backup schedules and custom domains/certificates.</div>
+
+<h2 id="prereq">3. Prerequisites and credentials</h2>
+<ul>
+  <li>Python 3.9 or newer; <code>kubectl</code>, <code>git</code>, PostgreSQL client tools, AWS CLI on the PATH.</li>
+  <li>Read access to the source cluster (MendixApp CRs, StorageInstances, Secrets in the app namespaces).</li>
+  <li>A PMP service user with a Personal Access Token; the target Git provider registered in PMP.</li>
+  <li>Network reachability from the host running the tool to both databases and both object stores.</li>
+</ul>
+<p>Credentials are passed through environment variables only:</p>
+<pre><code>KUBECONFIG / kube context             <span class="c"># read access to the SOURCE cluster</span>
+TEAMSERVER_PAT                        <span class="c"># Mendix PAT with Team Server read scope</span>
+TARGET_GIT_USER / TARGET_GIT_TOKEN    <span class="c"># push rights on the target Git provider</span>
+PMP_USER / PMP_PAT                    <span class="c"># PMP service user + Personal Access Token</span>
+SOURCE_DB_URL / TARGET_DB_URL         <span class="c"># postgres://user:pass@host:5432/db  (see db-url)</span></code></pre>
+<div class="callout danger"><b>Secrets handling</b>Never put credentials in <code>mx2pmp.json</code>. <code>export --include-secrets</code> writes secret values to <code>mx2pmp-work/export/...</code> with file mode 0600; delete those files after the migration.</div>
+
+<h2 id="workflow">4. Workflow per application</h2>
+<pre><code><span class="c"># 1. Discover</span>
+python3 mx2pmp.py init                       <span class="c"># writes mx2pmp.json template</span>
+kubectl config use-context &lt;source-cluster&gt;
+python3 mx2pmp.py inventory --add-to-config  <span class="c"># discovers MendixApp CRs, fills apps[]</span>
+<span class="c">#   edit mx2pmp.json: pmp.base_url, defaults.*, plan_map, mx_project_id per app</span>
+
+<span class="c"># 2. Export and plan</span>
+python3 mx2pmp.py export orders              <span class="c"># CR + StorageInstances + secret key names</span>
+python3 mx2pmp.py plan   orders              <span class="c"># PMP payloads in mx2pmp-work/plan/orders/*.json</span>
+<span class="c">#   review plan files; WARN lines list secrets, runtime version, memory, appUrl</span>
+
+<span class="c"># 3. Source code</span>
+python3 mx2pmp.py mirror-repo orders --dry-run &amp;&amp; python3 mx2pmp.py mirror-repo orders
+<span class="c">#   in PMP: create the app from the mirrored repo, copy its id into pmp_app_id</span>
+
+<span class="c"># 4. PMP environment and package</span>
+python3 mx2pmp.py pmp create-env   orders --mode Test --dry-run
+python3 mx2pmp.py pmp create-env   orders --mode Test
+python3 mx2pmp.py pmp apply-config orders --mode Test
+python3 mx2pmp.py pmp build        orders --branch main --version 1.4.0
+python3 mx2pmp.py pmp deploy       orders --mode Test          <span class="c"># deploy package</span>
+python3 mx2pmp.py pmp deploy       orders --mode Test --action Stop
+
+<span class="c"># 5. Cut-over: stop the source environment in the Mendix Portal (or scale the CR to 0)</span>
+eval "$(python3 mx2pmp.py db-url source -n mx-apps --secret orders-test-database)"
+eval "$(python3 mx2pmp.py db-url target -n mendix-apps --secret &lt;pmp-env-db-secret&gt; --context &lt;pmp-cluster&gt;)"
+python3 mx2pmp.py migrate-db    orders --mode Test --execute --yes
+python3 mx2pmp.py migrate-files orders --mode Test             <span class="c"># dry-run</span>
+python3 mx2pmp.py migrate-files orders --mode Test --execute
+python3 mx2pmp.py pmp deploy    orders --mode Test --action Start
+python3 mx2pmp.py validate      orders --mode Test
+python3 mx2pmp.py report</code></pre>
+<p>Repeat for Acceptance and Production. State is kept in <code>mx2pmp-work/state.json</code>; every command is idempotent or guarded by <code>--dry-run</code>, <code>--execute</code>, <code>--yes</code> or <code>--force</code>.</p>
+
+<h2 id="commands">5. Command reference</h2>
+<table>
+<tr><th>Command</th><th>Purpose</th><th>Key options</th></tr>
+<tr><td><code>init</code></td><td>Write a <code>mx2pmp.json</code> template</td><td></td></tr>
+<tr><td><code>inventory</code></td><td>List MendixApp CRs; write inventory.json/csv</td><td><code>--namespace</code>, <code>--add-to-config</code></td></tr>
+<tr><td><code>export &lt;app&gt;</code></td><td>Dump CR, StorageInstances, secret key names, rendered Deployment env</td><td><code>--mode</code>, <code>--include-secrets</code></td></tr>
+<tr><td><code>plan &lt;app&gt;</code></td><td>Translate export into PMP environment and configuration payloads</td><td><code>--mode</code>, <code>--overrides file.json</code></td></tr>
+<tr><td><code>mirror-repo &lt;app&gt;</code></td><td>Mirror Team Server repo into target Git</td><td><code>--dry-run</code></td></tr>
+<tr><td><code>pmp list-envs &lt;app&gt;</code></td><td>Show existing PMP environments</td><td></td></tr>
+<tr><td><code>pmp create-env &lt;app&gt;</code></td><td>Create PMP environment; stores <code>pmp_env_id</code></td><td><code>--mode</code>, <code>--dry-run</code>, <code>--force</code></td></tr>
+<tr><td><code>pmp apply-config &lt;app&gt;</code></td><td>PATCH configuration and trigger ApplyConfig</td><td><code>--mode</code>, <code>--dry-run</code>, <code>--no-apply</code></td></tr>
+<tr><td><code>pmp build &lt;app&gt;</code></td><td>Build a package from Git and wait</td><td><code>--branch</code>, <code>--revision</code>, <code>--version</code>, <code>--timeout</code>, <code>--poll</code></td></tr>
+<tr><td><code>pmp deploy &lt;app&gt;</code></td><td>Deploy / Start / Stop / Restart / ApplyConfig</td><td><code>--mode</code>, <code>--action</code>, <code>--package-id</code>, <code>--no-wait</code></td></tr>
+<tr><td><code>pmp status &lt;app&gt;</code></td><td>Dashboard status of environments</td><td><code>--mode</code></td></tr>
+<tr><td><code>db-url source|target</code></td><td>Print <code>export SOURCE_DB_URL=...</code> from a Kubernetes secret</td><td><code>-n</code>, <code>--secret</code>, <code>--context</code></td></tr>
+<tr><td><code>migrate-db &lt;app&gt;</code></td><td>pg_dump &rarr; pg_restore</td><td><code>--dump-file</code>, <code>--jobs</code>, <code>--skip-dump</code>, <code>--ignore-restore-errors</code>, <code>--execute --yes</code></td></tr>
+<tr><td><code>migrate-files &lt;app&gt;</code></td><td>Copy file storage bucket to bucket</td><td><code>--source-bucket</code>, <code>--target-bucket</code>, <code>--endpoint-url</code>, <code>--execute</code></td></tr>
+<tr><td><code>validate &lt;app&gt;</code></td><td>Config present in PMP, environment running, app URL responds, source state</td><td><code>--mode</code></td></tr>
+<tr><td><code>report</code></td><td>Markdown status table per app/environment/step</td><td></td></tr>
+</table>
+
+<h2 id="config">6. Configuration notes</h2>
+<ul>
+  <li><code>defaults.constants_mode</code>: <code>env</code> emits one <code>MX_&lt;Module&gt;_&lt;Constant&gt;</code> variable per constant (Operator convention); <code>runtime</code> emits a single <code>MicroflowConstants</code> JSON runtime setting.</li>
+  <li><code>defaults.plan_map</code> maps source Operator plan names to PMP storage and database plan names.</li>
+  <li><code>defaults.file_key_layout</code>: <code>flat</code> when both storage plans keep objects under the same key; <code>nested</code> re-keys to <code>aa/bb/&lt;uuid&gt;</code> and writes a manifest.</li>
+  <li>Per-environment overrides: <code>app_url</code>, <code>replicas</code>, <code>display_name</code>, <code>cluster_name</code>, <code>namespace</code>, <code>storage_plan</code>, <code>database_plan</code>, <code>core_resource_size</code>, <code>licenseId</code>, <code>licenseKey</code>.</li>
+  <li><code>plan --overrides file.json</code> replaces constant values, for example new endpoints on the PMP side.</li>
+</ul>
+<p>A complete example is provided in <code>mx2pmp.sample.json</code>.</p>
+
+<h2 id="caveats">7. Caveats to verify in your environment</h2>
+<div class="callout warn"><b>MendixApp CR field names</b>They differ slightly across Mendix Operator versions. The exporter reads several aliases (<code>appURL</code>/<code>appUrl</code>, <code>runtime.microflowConstants</code> as JSON string or object). Check <code>mx2pmp-work/export/&lt;app&gt;/&lt;Mode&gt;.json</code> once and adjust <code>build_plan()</code> if a field is missed.</div>
+<div class="callout warn"><b>PMP REST responses are untyped</b>Id extraction and status polling use tolerant matching. If <code>pmp build</code> or <code>deploy</code> time out while the portal shows success, adjust the patterns in <code>_status_of</code> / <code>_env_status_from_dashboard</code>.</div>
+<div class="callout"><b>Runtime version</b>The PMP build must use a base image that supports the source runtime version (shown as a WARN in <code>plan</code>).</div>
+<div class="callout danger"><b>Consistent data copy</b>Stop the source environment before <code>migrate-db</code>. The Mendix runtime performs schema synchronisation on the first Start in PMP; keep the source environment until validation passes.</div>
+<div class="callout"><b>Database scope</b><code>migrate-db</code> is PostgreSQL only. For managed databases such as RDS, run the tool from a host that can reach both databases, or inside a <code>kubectl run</code> pod with the postgres client image.</div>
+
+<div class="footer">mx2pmp v0.2.0 &nbsp;·&nbsp; Generated from README.md &nbsp;·&nbsp; All hostnames and identifiers in this guide are placeholders.</div>
+</div>
+</body>
+</html>
